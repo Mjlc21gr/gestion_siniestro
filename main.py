@@ -64,7 +64,7 @@ class SiniestroRequest(BaseModel):
 
 # Modelo para consulta de estado
 class ConsultaEstadoRequest(BaseModel):
-    id: str
+    transaccion: str
     p_cod_cia: str
     p_cod_secc: str
     p_cod_producto: str
@@ -163,12 +163,12 @@ async def consultar_estado_siniestro(request: ConsultaEstadoRequest):
     Recibe el ID del siniestro y los parámetros requeridos
     """
     try:
-        logger.info(f"Iniciando consulta de estado para ID: {request.id}")
+        logger.info(f"Iniciando consulta de estado para transacción: {request.transaccion}")
 
         # Delegar la consulta al servicio
         resultado = await consulta_estado_service.procesar_consulta_estado(request.dict())
 
-        logger.info(f"Consulta de estado completada para ID: {request.id}")
+        logger.info(f"Consulta de estado completada para transacción: {request.transaccion}")
 
         return {
             "success": True,
