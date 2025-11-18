@@ -204,9 +204,6 @@ class PagoSiniestroService:
                 "p_cod_cia": datos_request["compania"],  # Mapeo directo
                 "p_cod_secc": datos_request["seccion"],  # Mapeo directo
                 "p_cod_producto": datos_request["producto"],  # Mapeo directo
-                "p_entidad_colocadora": "183",  # Valor fijo
-                "p_proceso": "30",  # Valor fijo para pagos
-                "p_sistema_origen": "194"  # Valor fijo
             }
 
             try:
