@@ -200,11 +200,16 @@ class PagoSiniestroService:
 
             # Preparar parámetros para la consulta de estado
             parametros_consulta = {
-                "id": datos_request["transaccion"],  # Usar la transacción como ID
+                "transaccion": datos_request["transaccion"],  # Usar la transacción
                 "p_cod_cia": datos_request["compania"],  # Mapeo directo
                 "p_cod_secc": datos_request["seccion"],  # Mapeo directo
                 "p_cod_producto": datos_request["producto"],  # Mapeo directo
+                "p_entidad_colocadora": "183",  # Valor fijo
+                "p_proceso": "30",  # Valor fijo para pagos
+                "p_sistema_origen": "194"  # Valor fijo
             }
+
+            logger.info(f"Parámetros para consulta estado: {parametros_consulta}")
 
             try:
                 # Consultar estado usando el servicio
@@ -231,7 +236,7 @@ class PagoSiniestroService:
                     "consulta_estado": {
                         "success": False,
                         "error": str(e_consulta),
-                        "message": "gestionado"
+                        "message": "Pago procesado pero falló la consulta automática de estado"
                     },
                     "timestamp": datetime.now().isoformat()
                 }

@@ -55,7 +55,7 @@ class ConsultarEstadoService:
             raise Exception(error_msg)
 
     async def consultar_estado_siniestro(self,
-                                         id_siniestro: str,
+                                         transaccion: str,
                                          p_cod_cia: str,
                                          p_cod_secc: str,
                                          p_cod_producto: str,
@@ -75,7 +75,7 @@ class ConsultarEstadoService:
 
             # Parámetros de consulta
             params = {
-                "id": id_siniestro
+                "id": transaccion
             }
 
             # Headers con token y parámetros requeridos
@@ -89,7 +89,7 @@ class ConsultarEstadoService:
                 "p_sistema_origen": p_sistema_origen
             }
 
-            logger.info(f"Consultando estado de siniestro ID: {id_siniestro}")
+            logger.info(f"Consultando estado de siniestro transacción: {transaccion}")
             logger.info(f"URL: {url}")
             logger.info(f"Headers: {dict((k, v) for k, v in headers.items() if k != 'Authorization')}")
 
@@ -97,7 +97,7 @@ class ConsultarEstadoService:
 
             if response.status_code == 200:
                 resultado = response.json()
-                logger.info(f"Estado consultado exitosamente para ID: {id_siniestro}")
+                logger.info(f"Estado consultado exitosamente para transacción: {transaccion}")
                 return resultado
             elif response.status_code == 401:
                 # Token expirado, intentar renovar
@@ -109,14 +109,14 @@ class ConsultarEstadoService:
                 response = requests.get(url, params=params, headers=headers, timeout=30)
                 if response.status_code == 200:
                     resultado = response.json()
-                    logger.info(f"Estado consultado exitosamente tras renovar token para ID: {id_siniestro}")
+                    logger.info(f"Estado consultado exitosamente tras renovar token para transacción: {transaccion}")
                     return resultado
                 else:
                     error_msg = f"Error consultando estado tras renovar token: {response.status_code} - {response.text}"
                     logger.error(error_msg)
                     raise Exception(error_msg)
             elif response.status_code == 404:
-                error_msg = f"Siniestro no encontrado con ID: {id_siniestro}"
+                error_msg = f"Siniestro no encontrado con transacción: {transaccion}"
                 logger.warning(error_msg)
                 raise Exception(error_msg)
             else:
@@ -138,10 +138,10 @@ class ConsultarEstadoService:
         Método principal que orquesta la consulta de estado
         """
         try:
-            logger.info(f"Iniciando consulta de estado para ID: {parametros_consulta.get('id')}")
+            logger.info(f"Iniciando consulta de estado para transacción: {parametros_consulta.get('transaccion')}")
 
             # Extraer parámetros
-            id_siniestro = parametros_consulta.get("id")
+            transaccion = parametros_consulta.get("transaccion")
             p_cod_cia = parametros_consulta.get("p_cod_cia")
             p_cod_secc = parametros_consulta.get("p_cod_secc")
             p_cod_producto = parametros_consulta.get("p_cod_producto")
@@ -150,7 +150,7 @@ class ConsultarEstadoService:
             p_sistema_origen = parametros_consulta.get("p_sistema_origen")
 
             # Validar parámetros requeridos
-            if not all([id_siniestro, p_cod_cia, p_cod_secc, p_cod_producto,
+            if not all([transaccion, p_cod_cia, p_cod_secc, p_cod_producto,
                         p_entidad_colocadora, p_proceso, p_sistema_origen]):
                 raise Exception("Faltan parámetros requeridos para la consulta")
 
@@ -159,7 +159,7 @@ class ConsultarEstadoService:
 
             # Paso 2: Consultar estado
             resultado = await self.consultar_estado_siniestro(
-                id_siniestro=id_siniestro,
+                transaccion=transaccion,
                 p_cod_cia=p_cod_cia,
                 p_cod_secc=p_cod_secc,
                 p_cod_producto=p_cod_producto,
@@ -168,10 +168,10 @@ class ConsultarEstadoService:
                 p_sistema_origen=p_sistema_origen
             )
 
-            logger.info(f"Consulta de estado completada exitosamente para ID: {id_siniestro}")
+            logger.info(f"Consulta de estado completada exitosamente para transacción: {transaccion}")
 
             return {
-                "id_consultado": id_siniestro,
+                "transaccion_consultada": transaccion,
                 "parametros_consulta": {
                     "p_cod_cia": p_cod_cia,
                     "p_cod_secc": p_cod_secc,
