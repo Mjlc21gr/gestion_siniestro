@@ -234,7 +234,7 @@ class PagoSiniestroService:
                     "consulta_estado": {
                         "success": False,
                         "error": str(e_consulta),
-                        "message": "Pago procesado pero falló la consulta automática de estado"
+                        "message": "gestionado"
                     },
                     "timestamp": datetime.now().isoformat()
                 }
