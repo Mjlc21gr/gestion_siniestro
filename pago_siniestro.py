@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 import json
+import asyncio
+from consultar_estado import ConsultarEstadoService
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class PagoSiniestroService:
         self.client_id = os.getenv("CLIENT_ID", "42qjqldt7tp19ja02pjrfhhco")
         self.client_secret = os.getenv("CLIENT_SECRET", "quep14jpdaen4lngtj0rk8nvh7nv3sl2g0u2e5qh40cpgvti10q")
         self.token = None
+        self.consulta_estado_service = ConsultarEstadoService()
 
     async def obtener_token(self) -> str:
         """
@@ -173,6 +176,7 @@ class PagoSiniestroService:
     async def procesar_pago_siniestro(self, datos_request: Dict[str, Any]) -> Dict[str, Any]:
         """
         Método principal que orquesta todo el proceso de pago del siniestro
+        y automáticamente consulta el estado después de procesar el pago
         """
         try:
             logger.info(f"Iniciando proceso de pago para siniestro: {datos_request.get('num_sini')}")
@@ -184,20 +188,56 @@ class PagoSiniestroService:
             payload = self.construir_payload_pago(datos_request)
 
             # Paso 3: Procesar el pago
-            resultado = await self.procesar_pago_api(payload)
+            resultado_pago = await self.procesar_pago_api(payload)
 
-            logger.info("Proceso de pago de siniestro completado exitosamente")
+            logger.info("Pago procesado exitosamente, esperando 10 segundos antes de consultar estado...")
 
-            return {
-                "transaccion": payload["transaccion"],
-                "num_sini": datos_request["num_sini"],
-                "num_pol1": datos_request["num_pol1"],
-                "compania_enviada": datos_request["compania"],
-                "seccion_enviada": datos_request["seccion"],
-                "producto_enviado": datos_request["producto"],
-                "resultado_api": resultado,
-                "timestamp": datetime.now().isoformat()
+            # Paso 4: Esperar 10 segundos para que el sistema procese
+            await asyncio.sleep(10)
+
+            # Paso 5: Consultar automáticamente el estado
+            logger.info("Consultando estado automáticamente después del pago...")
+
+            # Preparar parámetros para la consulta de estado
+            parametros_consulta = {
+                "id": datos_request["transaccion"],  # Usar la transacción como ID
+                "p_cod_cia": datos_request["compania"],  # Mapeo directo
+                "p_cod_secc": datos_request["seccion"],  # Mapeo directo
+                "p_cod_producto": datos_request["producto"],  # Mapeo directo
+                "p_entidad_colocadora": "183",  # Valor fijo
+                "p_proceso": "30",  # Valor fijo para pagos
+                "p_sistema_origen": "194"  # Valor fijo
             }
+
+            try:
+                # Consultar estado usando el servicio
+                resultado_consulta = await self.consulta_estado_service.procesar_consulta_estado(parametros_consulta)
+
+                logger.info("Consulta de estado completada exitosamente después del pago")
+
+                # Retornar directamente el resultado de la consulta de estado
+                return resultado_consulta
+
+            except Exception as e_consulta:
+                logger.warning(f"Error consultando estado después del pago: {str(e_consulta)}")
+
+                # Si falla la consulta, retornar la respuesta del pago con el error
+                return {
+                    "pago_procesado": True,
+                    "transaccion": payload["transaccion"],
+                    "num_sini": datos_request["num_sini"],
+                    "num_pol1": datos_request["num_pol1"],
+                    "compania_enviada": datos_request["compania"],
+                    "seccion_enviada": datos_request["seccion"],
+                    "producto_enviado": datos_request["producto"],
+                    "resultado_pago": resultado_pago,
+                    "consulta_estado": {
+                        "success": False,
+                        "error": str(e_consulta),
+                        "message": "Pago procesado pero falló la consulta automática de estado"
+                    },
+                    "timestamp": datetime.now().isoformat()
+                }
 
         except Exception as e:
             logger.error(f"Error en proceso de pago de siniestro: {str(e)}")
