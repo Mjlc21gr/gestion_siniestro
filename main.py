@@ -1,12 +1,11 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
 import logging
 from crear_siniestro import CrearSiniestroService
 from consultar_estado import ConsultarEstadoService
+from pago_siniestro import PagoSiniestroService
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -74,9 +73,43 @@ class ConsultaEstadoRequest(BaseModel):
     p_sistema_origen: str
 
 
+# Modelo para pago de siniestro
+class PagoSiniestroRequest(BaseModel):
+    transaccion: str
+    num_sini: str
+    compania: str  # Se mapea a cod_cia
+    seccion: str  # Se mapea a cod_secc
+    producto: str  # Se mapea a cod_producto
+    num_pol1: str
+    cod_act_benef: str
+    tdoc_tercero: str
+    cod_benef: str
+    nro_factura: str
+    fecha_factura: str
+    localida_factura: str
+    factura_exenta: str
+    con_iva_sim: str
+    cod_texto: str
+    sub_cod_texto: str
+    tipo_liq: str
+    total_bruto_liq: int
+    autorizante: str
+    fecha_liq: str
+    cod_pago: int
+    cod_mon_liq: int
+    sub_tipo_ordpago: str
+    cod_cob: str
+    cod_concep_liq: int
+    importe_liq: int
+    cod_concep_rva: int
+    nro_exped: str
+    tipo_exped: str
+
+
 # Instanciar los servicios
 siniestro_service = CrearSiniestroService()
 consulta_estado_service = ConsultarEstadoService()
+pago_siniestro_service = PagoSiniestroService()
 
 
 @app.get("/")
@@ -148,6 +181,34 @@ async def consultar_estado_siniestro(request: ConsultaEstadoRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error consultando estado: {str(e)}"
+        )
+
+
+@app.post("/pago-siniestro")
+async def pagar_siniestro(request: PagoSiniestroRequest):
+    """
+    Endpoint para procesar pago de siniestro
+    Recibe campos amigables y los transforma a códigos internos
+    """
+    try:
+        logger.info(f"Iniciando pago de siniestro: {request.num_sini}")
+
+        # Delegar el pago al servicio
+        resultado = await pago_siniestro_service.procesar_pago_siniestro(request.dict())
+
+        logger.info(f"Pago procesado exitosamente para siniestro: {request.num_sini}")
+
+        return {
+            "success": True,
+            "message": "Pago procesado exitosamente",
+            "data": resultado
+        }
+
+    except Exception as e:
+        logger.error(f"Error procesando pago: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando pago: {str(e)}"
         )
 
 
