@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
 import logging
@@ -25,24 +27,39 @@ app.add_middleware(
 )
 
 
-# Modelo para el request body
+# Modelo para variables dinámicas
+class VariableDatos(BaseModel):
+    cod_modulo: str
+    cod_nivel: str
+    cod_grupo: str
+    cod_campo: str
+    valor_campo: str
+
+
+# Modelo para el request body - JSON completo
 class SiniestroRequest(BaseModel):
-    numeroDocumento: str
-    numeroPoliza: str
-    horaSiniestro: str
-    pat_Asg: str
-    responsabilidad: str
-    posRecobro: str
-    tipoDocTaller: str
-    lesionados: str
-    direccionOcurrencia: str
-    localidadSiniestro: str
-    correoSini: str
-    ciudadAtencion: str
-    autoridad: str
-    descripcionHecho: str
-    nitTaller: str
-    tipoCobertura: str
+    proceso: str
+    entidad_colocadora: str
+    sim_sistema_origen: str
+    transaccion: str
+    cod_cia: str
+    cod_secc: str
+    cod_producto: str
+    tdoc_tercero_aseg: str
+    cod_aseg: str
+    tdoc_tercero_tom: str
+    nro_documento: str
+    num_pol1: str
+    cod_ries: str
+    cod_causa_sini: str
+    fec_denu_sini: str
+    fecha_sini: str
+    hora_sini: str
+    desc_sini: str
+    sim_fec_formalizac: str
+    sim_usuario_creacion: str
+    pol_principal: str
+    vdatos_variables: list[VariableDatos]
 
 
 # Instanciar el servicio
@@ -72,12 +89,12 @@ async def crear_siniestro(request: SiniestroRequest):
     Recibe los datos del siniestro y delega la creación al servicio correspondiente
     """
     try:
-        logger.info(f"Iniciando creación de siniestro para documento: {request.numeroDocumento}")
+        logger.info(f"Iniciando creación de siniestro para documento: {request.nro_documento}")
 
         # Delegar la creación del siniestro al servicio
         resultado = await siniestro_service.procesar_siniestro(request.dict())
 
-        logger.info(f"Siniestro creado exitosamente para documento: {request.numeroDocumento}")
+        logger.info(f"Siniestro creado exitosamente para documento: {request.nro_documento}")
 
         return {
             "success": True,

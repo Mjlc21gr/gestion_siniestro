@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 import json
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +55,6 @@ class CrearSiniestroService:
             logger.error(error_msg)
             raise Exception(error_msg)
 
-    def procesar_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Procesa el payload recibido, generando transacción única si no existe
-        """
-        # Si no viene transacción, generar una única
-        if not payload.get("transaccion"):
-            payload["transaccion"] = f"SIN_{datetime.now().strftime('%Y%m%d%H%M%S')}_{str(uuid.uuid4())[:8]}"
-
-        logger.info(f"Payload procesado con transacción: {payload['transaccion']}")
-        return payload
-
     async def crear_siniestro_api(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Envía la solicitud para crear el siniestro a la API de Seguros Bolívar
@@ -84,7 +72,7 @@ class CrearSiniestroService:
             }
 
             logger.info(f"Creando siniestro en: {url}")
-            logger.info(f"Transacción: {payload.get('transaccion', 'No definida')}")
+            logger.info(f"Payload: {json.dumps(payload, indent=2)}")
 
             response = requests.post(url, headers=headers, json=payload, timeout=60)
 
@@ -125,7 +113,7 @@ class CrearSiniestroService:
     async def procesar_siniestro(self, payload_completo: Dict[str, Any]) -> Dict[str, Any]:
         """
         Método principal que orquesta todo el proceso de creación del siniestro
-        Recibe el payload completo y lo procesa
+        Recibe el payload completo y lo envía directamente a la API
         """
         try:
             logger.info("Iniciando proceso de creación de siniestro")
@@ -133,18 +121,18 @@ class CrearSiniestroService:
             # Paso 1: Obtener token de autenticación
             await self.obtener_token()
 
-            # Paso 2: Procesar el payload (agregar transacción si no existe)
-            payload = self.procesar_payload(payload_completo.copy())
+            # Paso 2: El payload ya viene completo, solo enviarlo
+            logger.info(f"Payload recibido: {json.dumps(payload_completo, indent=2)}")
 
             # Paso 3: Crear el siniestro
-            resultado = await self.crear_siniestro_api(payload)
+            resultado = await self.crear_siniestro_api(payload_completo)
 
             logger.info("Proceso de creación de siniestro completado exitosamente")
 
             return {
-                "transaccion": payload.get("transaccion"),
-                "nro_documento": payload.get("nro_documento"),
-                "num_pol1": payload.get("num_pol1"),
+                "transaccion": payload_completo.get("transaccion"),
+                "nro_documento": payload_completo.get("nro_documento"),
+                "num_pol1": payload_completo.get("num_pol1"),
                 "resultado_api": resultado,
                 "timestamp": datetime.now().isoformat()
             }
