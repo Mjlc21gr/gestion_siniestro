@@ -75,7 +75,7 @@ class ConsultarEstadoService:
 
             # Parámetros de consulta
             params = {
-                "id": transaccion
+                "transaccion": transaccion
             }
 
             # Headers con token y parámetros requeridos
