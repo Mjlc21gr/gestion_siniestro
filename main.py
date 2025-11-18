@@ -200,7 +200,7 @@ async def pagar_siniestro(request: PagoSiniestroRequest):
 
         return {
             "success": True,
-            "message": "Pago procesado exitosamente",
+            "message": "Gestion de pago",
             "data": resultado
         }
 

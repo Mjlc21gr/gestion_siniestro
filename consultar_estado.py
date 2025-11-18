@@ -172,14 +172,6 @@ class ConsultarEstadoService:
 
             return {
                 "transaccion_consultada": transaccion,
-                "parametros_consulta": {
-                    "p_cod_cia": p_cod_cia,
-                    "p_cod_secc": p_cod_secc,
-                    "p_cod_producto": p_cod_producto,
-                    "p_entidad_colocadora": p_entidad_colocadora,
-                    "p_proceso": p_proceso,
-                    "p_sistema_origen": p_sistema_origen
-                },
                 "resultado_api": resultado,
                 "timestamp": datetime.now().isoformat()
             }
