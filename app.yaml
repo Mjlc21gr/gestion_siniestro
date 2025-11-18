@@ -1,0 +1,21 @@
+runtime: python39
+
+env_variables:
+  # Variables de entorno para la API de Seguros Bolívar
+  API_BASE_URL: "https://stg-api-conecta.segurosbolivar.com/stage"
+  CLIENT_ID: "42qjqldt7tp19ja02pjrfhhco"
+  CLIENT_SECRET: "quep14jpdaen4lngtj0rk8nvh7nv3sl2g0u2e5qh40cpgvti10q"
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10
+  target_cpu_utilization: 0.6
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+handlers:
+- url: /.*
+  script: auto
