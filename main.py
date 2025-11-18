@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Dict, Any
 import logging
 from crear_siniestro import CrearSiniestroService
+from consultar_estado import ConsultarEstadoService
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -62,8 +63,20 @@ class SiniestroRequest(BaseModel):
     vdatos_variables: list[VariableDatos]
 
 
-# Instanciar el servicio
+# Modelo para consulta de estado
+class ConsultaEstadoRequest(BaseModel):
+    id: str
+    p_cod_cia: str
+    p_cod_secc: str
+    p_cod_producto: str
+    p_entidad_colocadora: str
+    p_proceso: str
+    p_sistema_origen: str
+
+
+# Instanciar los servicios
 siniestro_service = CrearSiniestroService()
+consulta_estado_service = ConsultarEstadoService()
 
 
 @app.get("/")
@@ -107,6 +120,34 @@ async def crear_siniestro(request: SiniestroRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error interno del servidor: {str(e)}"
+        )
+
+
+@app.post("/consultar-estado")
+async def consultar_estado_siniestro(request: ConsultaEstadoRequest):
+    """
+    Endpoint para consultar el estado de un siniestro
+    Recibe el ID del siniestro y los parámetros requeridos
+    """
+    try:
+        logger.info(f"Iniciando consulta de estado para ID: {request.id}")
+
+        # Delegar la consulta al servicio
+        resultado = await consulta_estado_service.procesar_consulta_estado(request.dict())
+
+        logger.info(f"Consulta de estado completada para ID: {request.id}")
+
+        return {
+            "success": True,
+            "message": "Estado consultado exitosamente",
+            "data": resultado
+        }
+
+    except Exception as e:
+        logger.error(f"Error consultando estado: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error consultando estado: {str(e)}"
         )
 
 
