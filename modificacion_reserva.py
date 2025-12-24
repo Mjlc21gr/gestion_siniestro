@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 import json
+import asyncio
+from consultar_estado import ConsultarEstadoService
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class ModificacionReservaService:
         self.client_id = os.getenv("CLIENT_ID", "42qjqldt7tp19ja02pjrfhhco")
         self.client_secret = os.getenv("CLIENT_SECRET", "quep14jpdaen4lngtj0rk8nvh7nv3sl2g0u2e5qh40cpgvti10q")
         self.token = None
+        self.consulta_estado_service = ConsultarEstadoService()
 
     async def obtener_token(self) -> str:
         """
@@ -63,10 +66,10 @@ class ModificacionReservaService:
         payload = {
             # Campos fijos
             "proceso": 772,
-            "entidad_colocadora": 0,
-            "sim_sistema_origen": 124,
+            "entidad_colocadora": 183,
+            "sim_sistema_origen": 194,
             "sim_id_canal": 3,
-            "sim_usuario_creacion": "B1062816",
+            "sim_usuario_creacion": "1022365456",
             
             # Campos dinámicos del request
             "transaccion": datos_request["transaccion"],
@@ -143,6 +146,7 @@ class ModificacionReservaService:
     async def procesar_modificacion_reserva(self, datos_request: Dict[str, Any]) -> Dict[str, Any]:
         """
         Método principal que orquesta todo el proceso de modificación de reserva
+        y automáticamente consulta el estado después de procesar
         """
         try:
             logger.info(f"Iniciando proceso de modificación de reserva para siniestro: {datos_request.get('num_sini')}")
@@ -154,19 +158,36 @@ class ModificacionReservaService:
             payload = self.construir_payload_modificacion_reserva(datos_request)
 
             # Paso 3: Modificar la reserva
-            resultado = await self.modificar_reserva_api(payload)
+            resultado_modificacion = await self.modificar_reserva_api(payload)
 
-            logger.info("Proceso de modificación de reserva completado exitosamente")
+            logger.info("Modificación de reserva procesada exitosamente, esperando 10 segundos antes de consultar estado...")
 
-            return {
-                "transaccion": datos_request["transaccion"],
-                "num_sini": datos_request["num_sini"],
-                "cod_cia": datos_request["cod_cia"],
-                "cod_secc": datos_request["cod_secc"],
-                "cod_producto": datos_request["cod_producto"],
-                "resultado_api": resultado,
-                "timestamp": datetime.now().isoformat()
+            # Paso 4: Esperar 10 segundos para que el sistema procese
+            await asyncio.sleep(10)
+
+            # Paso 5: Consultar automáticamente el estado
+            logger.info("Consultando estado automáticamente después de la modificación de reserva...")
+
+            # Preparar parámetros para la consulta de estado
+            parametros_consulta = {
+                "transaccion": str(datos_request["transaccion"]),
+                "p_cod_cia": str(datos_request["cod_cia"]),
+                "p_cod_secc": str(datos_request["cod_secc"]),
+                "p_cod_producto": str(datos_request["cod_producto"]),
+                "p_entidad_colocadora": "183",  # Valor fijo
+                "p_proceso": "772",  # Valor fijo para modificación de reserva
+                "p_sistema_origen": "194"  # Valor fijo
             }
+
+            logger.info(f"Parámetros para consulta estado: {parametros_consulta}")
+
+            # Consultar estado usando el servicio
+            resultado_consulta = await self.consulta_estado_service.procesar_consulta_estado(parametros_consulta)
+
+            logger.info("Consulta de estado completada exitosamente después de la modificación de reserva")
+
+            # Retornar directamente el resultado de la consulta de estado
+            return resultado_consulta
 
         except Exception as e:
             logger.error(f"Error en proceso de modificación de reserva: {str(e)}")
