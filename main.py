@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
 from crear_siniestro import CrearSiniestroService
 from consultar_estado import ConsultarEstadoService
 from pago_siniestro import PagoSiniestroService
+from modificacion_reserva import ModificacionReservaService
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -106,10 +107,31 @@ class PagoSiniestroRequest(BaseModel):
     tipo_exped: str
 
 
+# Modelo para datos de reserva
+class DatosReserva(BaseModel):
+    cod_mon: int
+    cod_cob: int
+    cod_concep_rva: int
+    valor_movim: int
+
+
+# Modelo para modificación de reserva
+class ModificacionReservaRequest(BaseModel):
+    transaccion: str
+    cod_cia: int
+    cod_secc: int
+    num_sini: int
+    cod_producto: int
+    tipo_exped: str
+    cod_cau_mod_ex: str
+    vdatos_reserva: List[DatosReserva]
+
+
 # Instanciar los servicios
 siniestro_service = CrearSiniestroService()
 consulta_estado_service = ConsultarEstadoService()
 pago_siniestro_service = PagoSiniestroService()
+modificacion_reserva_service = ModificacionReservaService()
 
 
 @app.get("/")
@@ -209,6 +231,43 @@ async def pagar_siniestro(request: PagoSiniestroRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error procesando pago: {str(e)}"
+        )
+
+
+@app.post("/modificacion-reserva")
+async def modificar_reserva(request: ModificacionReservaRequest):
+    """
+    Endpoint para modificar la reserva de un siniestro
+    Recibe los datos dinámicos y los combina con valores fijos del sistema
+    """
+    try:
+        logger.info(f"Iniciando modificación de reserva para siniestro: {request.num_sini}")
+
+        # Convertir el request a diccionario
+        request_dict = request.dict()
+        
+        # Convertir los objetos DatosReserva a diccionarios si es necesario
+        request_dict["vdatos_reserva"] = [
+            reserva if isinstance(reserva, dict) else reserva.dict() 
+            for reserva in request_dict["vdatos_reserva"]
+        ]
+
+        # Delegar la modificación al servicio
+        resultado = await modificacion_reserva_service.procesar_modificacion_reserva(request_dict)
+
+        logger.info(f"Reserva modificada exitosamente para siniestro: {request.num_sini}")
+
+        return {
+            "success": True,
+            "message": "Reserva modificada exitosamente",
+            "data": resultado
+        }
+
+    except Exception as e:
+        logger.error(f"Error modificando reserva: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error modificando reserva: {str(e)}"
         )
 
 
